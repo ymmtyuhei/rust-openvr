@@ -11,7 +11,7 @@
 use std::ffi::CString;
 use std::{error, fmt, mem, ptr};
 
-use openvr_sys as sys;
+use openvr_sys::{self as sys, EVRCompositorError_VRCompositorError_None};
 
 pub mod texture;
 
@@ -72,6 +72,74 @@ impl Compositor {
                 Ok(result)
             } else {
                 Err(CompositorError(e))
+            }
+        }
+    }
+
+    pub fn hello(&self) {
+        println!("Hello from compositor");
+    }
+
+    pub unsafe fn get_mirror_texture(&self) {
+        /*
+               var tex = new Texture2D(2, 2);
+               var nativeTex = IntPtr.Zero;
+               if (
+                   OpenVR.Compositor.GetMirrorTextureD3D11(
+                       EVREye.Eye_Left, // 左目固定
+                       tex.GetNativeTexturePtr(),
+                       ref nativeTex
+                   ) == EVRCompositorError.None)
+               {
+                   uint width = 0, height = 0;
+                   OpenVR.System.GetRecommendedRenderTargetSize(ref width, ref height);
+                   externalTexture = Texture2D.CreateExternalTexture(
+                       (int)width,
+                       (int)height,
+                       TextureFormat.RGBA32,
+                       false,
+                       false,
+                       nativeTex
+                   );
+               }
+        */
+        //self.0.ShowMirrorWindow.unwrap()();
+        let vulcan_tex = compositor::texture::vulkan::Texture {
+            image: 0,
+            device: ptr::null_mut(),
+            physical_device: ptr::null_mut(),
+            instance: ptr::null_mut(),
+            queue: ptr::null_mut(),
+            queue_family_index: 0,
+            width: 2232,
+            height: 2252,
+            format: 0,
+            sample_count: 0,
+        };
+        let open_gl_texture = texture::Handle::OpenGLTexture(0);
+        let my_texture = Texture {
+            handle: texture::Handle::OpenGLRenderBuffer(usize::max_value()),
+            color_space: texture::ColorSpace::Auto,
+        };
+        let my_texture = Texture {
+            handle: texture::Handle::Vulkan(vulcan_tex),
+            color_space: texture::ColorSpace::Auto,
+        };
+        let r = self.0.GetMirrorTextureD3D11.unwrap();
+        let t = r(
+            sys::EVREye_Eye_Left,
+            &my_texture as *const _ as *mut _,
+            ptr::null_mut(),
+        );
+        match t {
+            EVRCompositorError_VRCompositorError_InvalidTexture => {
+                println!("Invalid texture"); // ここにはいってしまう
+            }
+            EVRCompositorError_VRCompositorError_None => {
+                println!("None error");
+            }
+            _ => {
+                println!("Unknown error");
             }
         }
     }
